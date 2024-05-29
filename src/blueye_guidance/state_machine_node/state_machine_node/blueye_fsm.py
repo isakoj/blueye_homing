@@ -2,7 +2,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Int32, Empty, String, Float32
-from robot_interfaces.msg import DesiredVelocity
+import blueye.sdk as Drone
 
 import math
 import numpy as np

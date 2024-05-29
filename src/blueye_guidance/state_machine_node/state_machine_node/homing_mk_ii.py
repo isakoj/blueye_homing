@@ -204,7 +204,7 @@ class ObjectDetected(State):
     def __init__(self, node: Node) -> None:
         super().__init__([END, HAS_NEXT])
 
-        self.ref_pub = node.create_publisher(DesiredVelocity, "/blueye/desired_velocity", 10)
+        self.ref_pub = node.create_publisher(DesiredVelocity, "/blueye/stop", 10)
         self.ref_pub_fsm = node.create_publisher(PoseStamped, "/FSM/reference", 10)
         self.dock_init_pub = node.create_publisher(Bool, "/blueye/docking_init", 10)
         self.already_targeted = False
