@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'image'
+package_name = 'acoustic_modem'
 
 setup(
     name=package_name,
@@ -20,8 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'blueye_image = image.blueye_image:main',
-            
         ],
     },
 )

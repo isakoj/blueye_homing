@@ -20,6 +20,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'IMU_to_ros2 = blueye_converters.IMU_to_ros2:main',
+            'Video_to_ros2 = blueye_converters.Video_to_ros2:main',
+            'laptop_camera = blueye_converters.laptop_camera:main',
+            'blueye_image_simple = blueye_converters.blueye_image_simple:main',
+            'BluEye_Pose = blueye_converters.BluEye_Pose:main',
+            'BluEye_Force = blueye_converters.BluEye_Force:main',
         ],
     },
 )

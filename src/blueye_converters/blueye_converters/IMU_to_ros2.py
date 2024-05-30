@@ -21,6 +21,7 @@ class IMUPublisher(Node):
         self.drone = Drone()
         self.drone.telemetry.set_msg_publish_frequency(bp.CalibratedImuTel, 100)
         self.drone.telemetry.add_msg_callback([bp.CalibratedImuTel], self.callback_imu_calibrated)
+        self.drone.telemetry.set_msg_publish_frequency(bp.AttitudeTel, 100)
         self.drone.telemetry.add_msg_callback([bp.AttitudeTel], self.callback_attitude)
 
     def callback_imu_calibrated(self, msg_type, msg):
