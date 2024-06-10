@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
-from blueye_interfaces.action import NavigateToPose
+from blueye_interfaces.action import Homing
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Pose, TwistStamped, Vector3Stamped
 from std_msgs.msg import Empty
@@ -10,14 +10,14 @@ import math
 import numpy as np
 from transforms3d.euler import euler2quat, quat2euler
 
-class NavigateToPoseActionServer(Node):
+class HomingActionServer(Node):
 
     def __init__(self):
-        super().__init__('navigate_to_pose_action_server')
+        super().__init__('homing_action_server')
         self._action_server = ActionServer(
             self,
-            NavigateToPose,
-            '/navigate_to_pose',
+            Homing,
+            '/homing',
             self.execute_callback,
             goal_callback=self.goal_callback,
             cancel_callback=self.cancel_callback
@@ -31,25 +31,26 @@ class NavigateToPoseActionServer(Node):
         self.current_position = None
         self.current_velocity = None
         self.ref_point = None
-        self.U = 1.0
-        self.delta = 2.0
+        self.U = 0.15
+        self.delta = 0.5
 
     def goal_callback(self, goal_request):
-        self.get_logger().info('Received goal request')
+        self.get_logger().info('Received homing goal request')
         return GoalResponse.ACCEPT
 
     def cancel_callback(self, goal_handle):
-        self.get_logger().info('Received cancel request')
+        self.get_logger().info('Received cancel request for homing')
         return CancelResponse.ACCEPT
 
     def execute_callback(self, goal_handle):
-        self.get_logger().info('Executing goal...')
-        feedback_msg = NavigateToPose.Feedback()
+        self.get_logger().info('Executing homing...')
+        feedback_msg = Homing.Feedback()
         
         target_point = goal_handle.request.pose
-
         while True:
             if self.current_position is None or self.ref_point is None:
+                self.get_logger().warn('Current position or reference point is None, waiting...')
+                rclpy.spin_once(self, timeout_sec=1)
                 continue
 
             current_x = self.current_position.position.x
@@ -119,12 +120,12 @@ class NavigateToPoseActionServer(Node):
   
             feedback_msg.distance_remaining = distance
             goal_handle.publish_feedback(feedback_msg)
-
-            if distance < 20.0:
-                self.get_logger().info('Reached distance of 20 meters from station')
+            
+            if distance < 3.0:
+                self.get_logger().info('Reached homing target')
                 goal_handle.succeed()
-                result = NavigateToPose.Result()
-                result.error_code = NavigateToPose.Result.NONE  # Indicating success
+                result = Homing.Result()
+                result.error_code = Homing.Result.NONE  # Indicating success
                 
                 # Publish stop command
                 self._stop_pub.publish(Empty())
@@ -135,9 +136,9 @@ class NavigateToPoseActionServer(Node):
 
             if goal_handle.is_cancel_requested:
                 goal_handle.canceled()
-                self.get_logger().info('Goal canceled')
-                result = NavigateToPose.Result()
-                result.error_code = NavigateToPose.Result.CANCELED  # Indicating cancellation
+                self.get_logger().info('Homing goal canceled')
+                result = Homing.Result()
+                result.error_code = Homing.Result.CANCELED  # Indicating cancellation
                 
                 # Publish stop command
                 self._stop_pub.publish(Empty())
@@ -145,6 +146,7 @@ class NavigateToPoseActionServer(Node):
                 return result
 
     def odom_callback(self, msg):
+
         self.current_position = msg.pose.pose
         self.current_velocity = msg.twist.twist
 
@@ -156,7 +158,7 @@ def normalize_angle(angle):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = NavigateToPoseActionServer()
+    node = HomingActionServer()
     rclpy.spin(node)
     rclpy.shutdown()
 

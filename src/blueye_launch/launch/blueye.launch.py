@@ -18,27 +18,17 @@ def generate_launch_description():
 
     controller = Node(
         package = "blueye_controller",
-        executable = "blueye_controller",
+        executable = "controller_node",
         name = "PID",
 
     )
-    
- 
-    # Define the charging station's USBL transceiver node
+
     camera_blueye = Node(
-            package="image",
+            package="blueye_image",
             executable="blueye_image",
-            name="image",
+            name="blueye_image",
 
             )
-
-
-    actions_server = Node(
-        package="action_server",
-        executable="navigate_to_pose_action_server",
-        name="blueye_actions",
-
-    )
     
     Blueye_camera = Node(
         package='blueye_converters',
@@ -51,15 +41,41 @@ def generate_launch_description():
         executable='IMU_to_ros2',
         name='imu_node'
     )
+    
+    blueye_dvl = Node(
+        package='blueye_converters',
+        executable='dvl_to_ros2',
+        name='dvl_node'
+    )
+    
+    action_server_executables = [
+        "navigate_to_pose_action_server",
+        "adjusting_position_action_server",
+        "homing_action_server",
+        "initialize_docking_action_server",
+        "navigate_waypoints_action_server",
+        "maneuvering_action_server"
+    ]
+
+    # Create action server nodes
+    action_servers = [
+        Node(
+            package="action_server",
+            executable=exe,
+            name="blueye_actions",
+        )
+        for exe in action_server_executables
+    ]
 
 
 
     return LaunchDescription([
-        # camera_blueye,
+        camera_blueye,
         controller,
-        actions_server,
         Blueye_camera,
-        Blueye_IMU    
-    ])
+        Blueye_IMU,
+        blueye_dvl,
+        #blueye_usbl,
+    ] + action_servers)
 
 

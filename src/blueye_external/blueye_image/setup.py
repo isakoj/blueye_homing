@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'image'
+package_name = 'blueye_image'
 
 setup(
     name=package_name,
@@ -13,15 +13,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='isakoj',
-    maintainer_email='isakoj@stud.ntnu.no',
+    maintainer='urlaxle',
+    maintainer_email='ambjorn.waldum@ntnu.no',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'blueye_image = image.blueye_image:main',
-            
+            'blueye_image = blueye_image.blueye_image:main',
         ],
     },
 )

@@ -3,6 +3,8 @@ geometry_msgs/PoseStamped pose
 
 ---
 # Result
+uint16 result_code
+string result_message
 
 # Error codes
 # Note: The expected priority order of the errors should match the message order
@@ -13,7 +15,6 @@ uint16 COLLISION_DETECTED=3
 uint16 TIMED_OUT=4
 uint16 CANCELED=5
 
-uint16 error_code
 ---
 # Feedback
 geometry_msgs/PoseStamped current_pose

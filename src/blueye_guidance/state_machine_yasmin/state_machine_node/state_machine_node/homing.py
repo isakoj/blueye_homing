@@ -16,10 +16,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped
 from rclpy.qos import qos_profile_sensor_data
-from std_msgs.msg import Int32, Empty, String, Float32, Bool
-from robot_interfaces.msg import DesiredVelocity
+from std_msgs.msg import Int32, Empty, String
+from blueye_interfaces.msg import DesiredVelocity
 
 import math
 import numpy as np
@@ -204,9 +204,8 @@ class ObjectDetected(State):
     def __init__(self, node: Node) -> None:
         super().__init__([END, HAS_NEXT])
 
-        self.ref_pub = node.create_publisher(DesiredVelocity, "/blueye/stop", 10)
+        self.ref_pub = node.create_publisher(DesiredVelocity, "/blueye/desired_velocity", 10)
         self.ref_pub_fsm = node.create_publisher(PoseStamped, "/FSM/reference", 10)
-        self.dock_init_pub = node.create_publisher(Bool, "/blueye/docking_init", 10)
         self.already_targeted = False
         
 
@@ -217,7 +216,6 @@ class ObjectDetected(State):
 
         # Stop the robot
         self.ref_pub_fsm.publish(PoseStamped())
-        
 
         velocity_cmd = DesiredVelocity()
         velocity_cmd.surge = 0.0
@@ -227,28 +225,77 @@ class ObjectDetected(State):
         self.ref_pub.publish(velocity_cmd)
 
         if marker_id == 1:
-            blackboard.heading = "dock"
-            self.dock_init_pub.publish(Bool(data=True))
-
             return END
         elif marker_id in [19, 20]:
-            blackboard.target_marker_id = 1
-            blackboard.home_pose = "back"
+            blackboard.target_marker_id = 18
+            blackboard.heading = "south"
+            blackboard.control = "left"
             return HAS_NEXT
         elif marker_id == 18:
-            blackboard.target_marker_id = 1
-            blackboard.home_pose = "right"
-            
+            blackboard.target_marker_id = 17
+            blackboard.heading = "west"
+            blackboard.control = "left"
+            print("Heading set to west")
             return HAS_NEXT
         elif marker_id == 17:
             blackboard.target_marker_id = 1
-            blackboard.home_pose = "front"
+            blackboard.heading = "north"
+            blackboard.control = "left"
             return HAS_NEXT
         elif marker_id == 16:
             blackboard.target_marker_id = 1
-            blackboard.home_pose = "left"
+            blackboard.heading = "east"
+            blackboard.control = "right"
             return HAS_NEXT
         
+class AdjustHeading(MonitorState):
+    def __init__(self, node: Node) -> None:
+        super().__init__( Odometry,  # msg type
+                            "odometry/filtered",  # topic name
+                            [SUCCEED, ABORT],  # outcomes
+                            self.monitor_handler,
+                            qos = qos_profile_sensor_data,  # monitor handler callback
+                            msg_queue=10,  # queue of the monitor handler callback
+                            timeout=10  # timeout to wait for msgs in seconds
+                                        # if not None, CANCEL outcome is added
+                            )
+        
+        self.ref_pub = node.create_publisher(PoseStamped, "/FSM/yaw_reference", 10)
+        self.heading = None
+    
+    def monitor_handler(self, blackboard: Blackboard, msg: Odometry) -> str:
+        
+        self.heading = blackboard.heading
+        
+        orientation = msg.pose.pose.orientation
+        _, _, yaw = quat2euler([orientation.w, orientation.x, orientation.y, orientation.z])
+        
+        if self.heading == "south":
+            print("Desired heading: south")
+            desired_heading = -1.571
+        elif self.heading == "north":
+            print("Desired heading: north")
+            desired_heading = 1.571
+        elif self.heading == "east":
+            print("Desired heading: east")
+            desired_heading = 0.0
+        elif self.heading == "west":
+            print("Desired heading: west")
+            desired_heading = -3.0
+        
+        # Check if the current heading is within a small angle of the desired heading
+        if abs(desired_heading - yaw) < 0.1:
+            return SUCCEED
+        
+        quat = euler2quat(0, 0, (desired_heading), axes='sxyz')
+        pose = PoseStamped()
+        pose.pose.orientation.z = quat[3]
+        pose.pose.orientation.w = quat[0]
+        self.ref_pub.publish(pose)
+        
+        return ABORT
+
+
 class AdjustingPosition(MonitorState):
     def __init__(self, node: Node) -> None:
         super().__init__(Int32,  # msg type
@@ -258,99 +305,60 @@ class AdjustingPosition(MonitorState):
                          qos=qos_profile_sensor_data,  # monitor handler callback
                          msg_queue=10,  # queue of the monitor handler callback
                          timeout=10)  # timeout to wait for msgs in seconds
-        self.ref_pub = node.create_publisher(PoseStamped, "/FSM/homing_reference", 10)
-        self.radius_pub = node.create_publisher(Float32, "/FSM/radius", 10)
+        self.ref_pub = node.create_publisher(PoseStamped, "/FSM/yaw_reference", 10)
+        self.vel_pub = node.create_publisher(DesiredVelocity, "/blueye/desired_velocity", 10)
+        self.direction_pub = node.create_publisher(String, "/blueye/direction", 10)
         self.target_marker_id = None
-        self.home_pose = None
         self.control = None
         self.heading = None  # Ensure control is initialized
 
     def monitor_handler(self, blackboard: Blackboard, msg: Int32) -> str:
         print("Adjusting position")
         self.target_marker_id = blackboard.target_marker_id
-        self.home_pose = blackboard.home_pose
+        self.control = blackboard.control
+        self.heading = blackboard.heading
 
         if msg.data == self.target_marker_id:
-            self.adjust_position(self.home_pose)
+            self.control = "stop"
+            self.adjust_position(self.control)
             return SUCCEED
         else:
-            self.adjust_position(self.home_pose)
+            if self.control:
+                self.adjust_position(self.control)
             return ABORT
 
-    def adjust_position(self, home_pose):
+    def adjust_position(self, direction):
         pose = PoseStamped()
-        radius = Float32()
 
-        if home_pose == "front":
-            pose.pose.position.x = 0.0
-            pose.pose.position.y = 2.0
-            pose.pose.position.z = 0.0
-            radius.data = 3.0
-        elif home_pose == "back":
-            pose.pose.position.x = -3.0
-            pose.pose.position.y = -2.0
-            pose.pose.position.z = 0.0
-            radius.data = 3.0
-            
-        elif home_pose == "left":
-            pose.pose.position.x = 3.0
-            pose.pose.position.y = 2.0
-            pose.pose.position.z = 0.0
-            radius.data = 3.0   
-        elif home_pose == "right":
-            pose.pose.position.x = -3.0
-            pose.pose.position.y = 2.0
-            pose.pose.position.z = 0.0
-            radius.data = 3.0
-        else:
-            pose.pose.position = None
-
-        self.radius_pub.publish(radius)
+        if self.heading == "south":
+            quat = euler2quat(0, 0, normalize_angle(-1.571), axes='sxyz')
+        elif self.heading == "north":
+            quat = euler2quat(0, 0, normalize_angle(1.571), axes='sxyz')
+        elif self.heading == "east":
+            quat = euler2quat(0, 0, 0.0, axes='sxyz')
+        elif self.heading == "west":
+            # Tried to use np.pi but that made it spin in the opposite direction
+            quat = euler2quat(0, 0, -(3), axes='sxyz')
+        pose.pose.orientation.z = quat[3]
+        pose.pose.orientation.w = quat[0]
         self.ref_pub.publish(pose)
 
-class InitializeDocking(MonitorState):
-    def __init__(self, node: Node) -> None:
-        super().__init__(PoseWithCovarianceStamped,  # msg type
-                          "blueye/aruco_pose_board",
-                            [SUCCEED, ABORT],  # outcomes
-                            self.monitor_handler,
-                            qos=qos_profile_sensor_data,  # monitor handler callback
-                            msg_queue=10,  # queue of the monitor handler callback
-                            timeout=10)  # timeout to wait for msgs in seconds
-        
+        direction_msg = String()
+        direction_msg.data = direction
+        self.direction_pub.publish(direction_msg)
 
-        self.ref_pub = node.create_publisher(PoseStamped, "/FSM/homing_reference", 10)
-        self.stop_pub = node.create_publisher(Empty, "/blueye/stop", 10)
-        self.already_targeted = False
-        
 
-    def monitor_handler(self, blackboard: Blackboard, msg: PoseWithCovarianceStamped) -> str:
-        print("Docking initiated")
-        
+class InitalizeDocking(State):
+    pass
 
-        aruco_pose = msg.pose.pose.position
-
-        if aruco_pose.x < 0.1 and aruco_pose.x > -0.1:
-            self.stop_pub.publish(Empty())
-            return SUCCEED
-        else:
-            pose = PoseStamped()
-            pose.header.frame_id = "world_ned"
-            pose.pose.position.x = 0.0
-            pose.pose.position.y = 2.0
-            pose.pose.position.z = 0.0
-
-            self.ref_pub.publish(pose)
-            return ABORT
-
-def normalize_angle(angle):
+def normalize_angle(self, angle):
     return (angle + np.pi) % (2 * np.pi) - np.pi
             
 
 
 def main():
 
-    print("Homing initiated")
+    print("Homing initiated to distance of 50 meters from station")
 
     
     # init ROS 2
@@ -401,11 +409,20 @@ def main():
         "ObjectDetected",
         ObjectDetected(node),
         transitions={
-            END: "InitializeDocking",
-            HAS_NEXT: "AdjustingPosition"
+            END: SUCCEED,
+            HAS_NEXT: "AdjustHeading"
             }
     )
 
+    sm.add_state(
+        "AdjustHeading",
+        AdjustHeading(node),
+        transitions={
+            SUCCEED: "AdjustingPosition",
+            ABORT: "AdjustHeading"
+        }
+    )
+    
     sm.add_state(
         "AdjustingPosition",
         AdjustingPosition(node),
@@ -415,14 +432,6 @@ def main():
                     }
     )
     
-    sm.add_state(
-        "InitializeDocking",
-        InitializeDocking(node),
-        transitions={
-            SUCCEED: SUCCEED,
-            ABORT: "InitializeDocking"
-        }
-    )
 
 
     # pub FSM info

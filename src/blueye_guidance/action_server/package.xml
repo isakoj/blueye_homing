@@ -15,7 +15,7 @@
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2</depend>
-  <depend>robot_interfaces</depend>
+  <depend>blueye_interfaces</depend>
   
 
   <test_depend>ament_copyright</test_depend>

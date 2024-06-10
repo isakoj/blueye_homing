@@ -25,6 +25,7 @@ setup(
             'blueye_fsm = state_machine_node.blueye_fsm:main',
             'homing = state_machine_node.homing:main',
             'homing_mk_ii = state_machine_node.homing_mk_ii:main',
+            'action_test = state_machine_node.action_test:main'
         ],
     },
 )

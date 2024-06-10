@@ -21,6 +21,11 @@ setup(
     entry_points={
         'console_scripts': [
             'navigate_to_pose_action_server = action_server.navigate_to_pose_action_server:main',
+            'adjusting_position_action_server = action_server.adjusting_position_action_server:main',
+            'initialize_docking_action_server = action_server.initialize_docking_action_server:main',
+            'homing_action_server = action_server.homing_action_server:main',
+            'navigate_waypoints_action_server = action_server.navigate_waypoints_action_server:main',
+            'maneuvering_action_server = action_server.maneuvering_action_server:main'
         ],
     },
 )

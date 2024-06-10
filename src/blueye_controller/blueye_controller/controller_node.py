@@ -5,9 +5,9 @@ from transforms3d.euler import quat2euler
 
 from blueye.sdk import Drone
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Vector3Stamped, TwistStamped
 from nav_msgs.msg import Odometry
-from std_msgs.msg import String, Float32, Empty
+from std_msgs.msg import String, Float32, Empty, Header
 from rclpy.qos import QoSProfile
 import numpy as np
 
@@ -43,6 +43,10 @@ class Controller(Node):
         self.nu = np.zeros(3)
         self.bias = np.zeros(3)
         self.reference = np.zeros(3)
+        self.nu_d = np.zeros(3)
+        self.error = np.zeros(3)
+        self.error_dock = np.zeros(3)
+        self.height = 0.0
 
         self.dt = 0.01
         self.radius_d = 3.0
@@ -52,10 +56,16 @@ class Controller(Node):
         # Subscribers and publishers
         self.obs_sub = self.create_subscription(Odometry, '/odometry/filtered', self.observer_callback, 10)
         self.reference_sub = self.create_subscription(PoseStamped, '/FSM/reference', self.reference_callback, 10)
-        self.yaw_reference_sub = self.create_subscription(PoseStamped, '/FSM/yaw_reference', self.yaw_reference_callback, 10)
         self.homing_sub = self.create_subscription(PoseStamped, '/FSM/homing_reference', self.homing_reference_callback, 10)
         self.radius_sub = self.create_subscription(Float32, '/FSM/radius', self.radius_callback, 10)
-        # Initialize the GUI
+        self._error_sub = self.create_subscription(Vector3Stamped, '/FSM/errors', self.error_callback, 10)
+        self._twist_sub = self.create_subscription(TwistStamped, '/FSM/twist', self.twist_callback, 10)
+        self._error_plot_pub = self.create_publisher(Vector3Stamped, '/FSM/error_depth_plot', qos)
+        
+        
+        self._transition_sub = self.create_subscription(Header, '/FSM/transitions', self.transition_callback, 10)
+        self.transition_pub = self.create_publisher(Header, '/FSM/transitions_sim', qos)
+        
 
         self.velocity_stop = self.create_subscription(Empty, '/blueye/stop', self.stop_velocity_commands, 1)
         self.gui = PIDTuningGUI(self)
@@ -100,8 +110,13 @@ class Controller(Node):
             error_b = R.T @ error_n
             error_b[2] = normalize_angle(error_b[2])
 
-            self.get_logger().info(f'Error: {error_b}, Error_n: {error_n}')
 
+            error = self.error
+            error[2] = normalize_angle(error[2])
+            error_dot_n = self.nu_d - self.nu[:3]
+            error_dot_b = R.T @ error_dot_n
+            error_dot = error_dot_b
+            
             if self.homing_control:
                 surge_pid = self.homing_surge_pid
                 sway_pid = self.homing_sway_pid
@@ -118,20 +133,28 @@ class Controller(Node):
                 desired_yaw = np.arctan2(dy, dx)
                 error_b[2] = normalize_angle(desired_yaw - self.eta[2])
                 yaw_vel_cmd = yaw_pid.update(error_b[2], self.nu[2], self.dt)
-                yaw_error_threshold = 0.2
-                
+                heave_error_threshold = 0.1
+                yaw_error_threshold = 0.05
+                delta = 10.0
+
+                max_force = 1.0  # Adjusted limit for force
+                max_torque = 0.1
             else:
                 surge_pid = self.transit_surge_pid
                 sway_pid = self.transit_sway_pid
                 yaw_pid = self.transit_yaw_pid
 
-                surge_vel_cmd = surge_pid.update(error_b[0], self.nu[0], self.dt)
-                sway_vel_cmd = sway_pid.update(error_b[1], self.nu[1], self.dt)
-                yaw_vel_cmd = yaw_pid.update(error_b[2], self.nu[2], self.dt)
-                yaw_error_threshold = 0.1 
+                surge_vel_cmd = surge_pid.update(error_b[0], error_dot[0], self.dt)
+                sway_vel_cmd = sway_pid.update(error_b[1], error_dot[1], self.dt)
+                yaw_vel_cmd = yaw_pid.update(error[2], error_dot[2], self.dt)
+                heave_error_threshold = 0.1
+                yaw_error_threshold = 0.123
+                delta = 100.0
 
-            max_force = 0.5  # Adjusted limit for force
-            max_torque = 1.0 # Adjusted limit for torque
+                max_force = 1.0  # Adjusted limit for force
+                max_torque = 0.1
+
+
             # Apply limits to surge and sway force outputs
             surge_vel_cmd = max(-max_force, min(surge_vel_cmd, max_force))
             sway_vel_cmd = max(-max_force, min(sway_vel_cmd, max_force))
@@ -151,8 +174,8 @@ class Controller(Node):
         quaternion = (orientation.w, orientation.x, orientation.y, orientation.z)
         _, _, yaw = quat2euler(quaternion, axes='sxyz')
         self.eta = np.array([position[0], position[1], normalize_angle(yaw)])
-
-        self.nu = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.angular.z])
+        self.height = position[2]
+        self.nu = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.angular.z, msg.twist.twist.linear.z])
 
     def reference_callback(self, msg):
         try:
@@ -167,24 +190,13 @@ class Controller(Node):
 
         self.yaw_control = False
         self.homing_control = False
-        self.controller_callback()
-
-    def yaw_reference_callback(self, msg):
-        try:
-            orientation = msg.pose.orientation
-            quaternion = (orientation.w, orientation.x, orientation.y, orientation.z)
-            _, _, reference_yaw = quat2euler(quaternion, axes='sxyz')
-            self.reference[2] = normalize_angle(reference_yaw)
-            self.yaw_control = True
-            self.homing_control = False
-        except Exception as e:
-            self.get_logger().error(f'Failed in yaw_reference_callback: {str(e)}')
-
+        self.init_docking = False
         self.controller_callback()
 
     def homing_reference_callback(self, msg):
         self.reference = np.array([msg.pose.position.x, msg.pose.position.y, 0])
         self.yaw_control = False
+        self.init_docking = False
         self.homing_control = True
         self.controller_callback()
 
@@ -194,6 +206,22 @@ class Controller(Node):
     def radius_callback(self, msg):
         self.radius_d = msg.data
 
+    def twist_callback(self, msg):
+        self.nu_d = np.array([msg.twist.linear.x, msg.twist.linear.y, msg.twist.angular.z])
+
+    def error_callback(self, msg):
+        self.error = np.array([msg.vector.x, msg.vector.y, msg.vector.z])
+
+
+    def transition_callback(self, msg):
+        state = msg.frame_id
+
+        time = self.get_clock().now().to_msg()
+
+        transition_sim = Header()
+        transition_sim.stamp = time
+        transition_sim.frame_id = state
+        self.transition_pub.publish(transition_sim)
 
 def normalize_angle(angle):
     return (angle + np.pi) % (2 * np.pi) - np.pi

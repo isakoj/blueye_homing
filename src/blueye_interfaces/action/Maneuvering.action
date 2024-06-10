@@ -1,5 +1,5 @@
 # Goal
-geometry_msgs/PoseStamped pose
+geometry_msgs/PoseStamped[] poses
 
 ---
 # Result

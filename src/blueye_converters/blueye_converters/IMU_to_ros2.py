@@ -8,12 +8,16 @@ import time
 import blueye.protocol as bp
 from blueye.sdk import Drone
 
+from transforms3d.euler import euler2quat
+import numpy as np
+
 class IMUPublisher(Node):
     def __init__(self):
         super().__init__('imu_publisher')
-        self.imu_publisher = self.create_publisher(Imu, '/blueye/imu', 100)
-        self.magnetometer_publisher = self.create_publisher(MagneticField, 'magnetometer/data', 100)  # Magnetometer publisher
-        self.attitude_publisher = self.create_publisher(Vector3Stamped, 'attitude', 100)  # Attitude publisher
+        self.imu_publisher = self.create_publisher(Imu, '/blueye/imu', 1)
+        self.magnetometer_publisher = self.create_publisher(MagneticField, 'magnetometer/data', 10)  # Magnetometer publisher
+        self.attitude_publisher = self.create_publisher(Vector3Stamped, '/blueye/attitude', 10)  # Attitude publisher
+        self.yaw_quat_publisher = self.create_publisher(Imu, '/blueye/quaternion/imu', 10)
         self.br = TransformBroadcaster(self)  # TF2 Transform Broadcaster
         self.initialize_drone()
 
@@ -27,7 +31,7 @@ class IMUPublisher(Node):
     def callback_imu_calibrated(self, msg_type, msg):
         imu_msg = Imu()
         imu_msg.header.stamp = self.get_clock().now().to_msg()
-        imu_msg.header.frame_id = 'imu_link'
+        imu_msg.header.frame_id = 'base_link'
         imu_msg.angular_velocity.x = msg.imu.gyroscope.x
         imu_msg.angular_velocity.y = msg.imu.gyroscope.y
         imu_msg.angular_velocity.z = msg.imu.gyroscope.z
@@ -45,6 +49,8 @@ class IMUPublisher(Node):
         magnetometer_msg.magnetic_field.y = msg.imu.magnetometer.y
         magnetometer_msg.magnetic_field.z = msg.imu.magnetometer.z
         self.magnetometer_publisher.publish(magnetometer_msg)
+        
+        
 
         # Now broadcast the transform
         t = TransformStamped()
@@ -69,12 +75,29 @@ class IMUPublisher(Node):
         attitude_msg.header.frame_id = 'base_link'
         
         # Assuming msg contains roll, pitch, and yaw data
-        attitude_msg.vector.x = msg.attitude.roll
-        attitude_msg.vector.y = msg.attitude.pitch
-        attitude_msg.vector.z = msg.attitude.yaw
+        attitude_msg.vector.x = np.radians(msg.attitude.roll)
+        attitude_msg.vector.y = np.radians(msg.attitude.pitch)
+        attitude_msg.vector.z = np.radians(msg.attitude.yaw)
+        
+        
         
         # Publish the attitude message
         self.attitude_publisher.publish(attitude_msg)
+        
+        w, x, y, z = euler2quat(np.radians(msg.attitude.roll),
+                                np.radians(msg.attitude.pitch),
+                                np.radians(msg.attitude.yaw))
+        
+        
+        heading_msg = Imu()
+        heading_msg.header.stamp = self.get_clock().now().to_msg()
+        heading_msg.header.frame_id = 'base_link'
+        heading_msg.orientation.w = w
+        heading_msg.orientation.x = x
+        heading_msg.orientation.y = y
+        heading_msg.orientation.z = z
+        self.yaw_quat_publisher.publish(heading_msg)
+        
         
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()

@@ -1,0 +1,13 @@
+# Goal
+geometry_msgs/Pose aruco_pose
+
+---
+# Result
+uint16 NONE=0
+uint16 ERROR=1
+uint16 result_code
+
+---
+# Feedback
+geometry_msgs/PoseStamped current_pose
+float32 distance_remaining

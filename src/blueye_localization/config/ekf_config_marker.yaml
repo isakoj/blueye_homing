@@ -7,70 +7,41 @@ ekf_filter_node:
     base_link_frame: base_link  # The frame of the robot base
     world_frame: odom  # World frame assumes odom by default
 
-    # IMU fused
-    imu0: blueye/imu
-    imu0_config: [false, false, false,
+    ## AR Tag fused
+    pose0: blueye/aruco_pose_single
+    pose0_config: [true, true, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    pose0_queue_size: 5
+    pose0_differential: false
+    pose0_relative: false
+
+    pose: blueye/aruco_pose_board
+    pose2_config: [true, true, false,
                    false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
+    pose2_queue_size: 5
+    pose2_differential: false
+    pose2_relative: false
+
+        # IMU fused
+    imu0: blueye/imu_ned
+    imu0_config: [false, false, false,
+                   true, true, true,
                    false, false, false,
                    true, true, true,
                    true, true, false]
     imu0_queue_size: 20
     imu0_differential: false
     imu0_relative: false
-    imu0_remove_gravitational_acceleration: true
 
-    imu0: blueye/quaternion/imu
-    imu0_config: [false, false, false,
-                   true, true, true,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false]
-    imu0_queue_size: 15
-    imu0_differential: false
-    imu0_relative: false
 
-    #Unsure if this is good behaviour. Not enough tags to accurately get the range
-    ## AR Tag fused
-    pose0: blueye/aruco_pose_single
-    pose0_config: [true, true, false,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false]
-    pose0_queue_size: 5
-    pose0_differential: false
-    pose0_relative: false
 
-    pose1: blueye/aruco_pose_board
-    pose1_config: [true, true, false,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false]
-    pose1_queue_size: 5
-    pose1_differential: false
-    pose1_relative: false
-
-    twist0: blueye/dvl_twist
-    twist0_config: [false, false, false,
-                    false, false, false,
-                    true, true, false,
-                    false, false, false,
-                    false, false, false]
-    twist0_queue_size: 10
-    twist0_differential: false
-    twist0_relative: false
-
-    # use_control: true
-    # stamped_control: false  # Set to true if using geometry_msgs/TwistStamped
-    # control_timeout: 0.2
-    # control_config: [true, false, false, false, false, true]
-    # acceleration_limits: [0.02, 0.02, 0.02, 0.0, 0.0, 0.5]
-    # deceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 4.5]
-    # acceleration_gains: [0.8, 0.8, 0.8, 0.0, 0.0, 0.9]
-    # deceleration_gains: [1.0, 1.0, 1.0, 0.0, 0.0, 1.0]
-
-    # tuning parameters
+# tuning parameters
     process_noise_covariance: [0.1,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.1,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.01,  0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,

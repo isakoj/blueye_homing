@@ -17,7 +17,7 @@
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
-from robot_interfaces.action import NavigateToPose
+from blueye_interfaces.action import NavigateToPose
 from rclpy.qos import qos_profile_sensor_data
 
 import math

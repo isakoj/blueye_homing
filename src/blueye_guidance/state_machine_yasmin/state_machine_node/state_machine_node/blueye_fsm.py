@@ -2,7 +2,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Int32, Empty, String, Float32
-import blueye.sdk as Drone
+
 
 import math
 import numpy as np
@@ -13,7 +13,7 @@ from transforms3d.euler import euler2quat, quat2euler
 import time
 import rclpy
 from rclpy.node import Node
-from blueye_external.yasmin import CbState
+from yasmin import CbState
 from yasmin import State
 from yasmin import Blackboard
 from yasmin import StateMachine

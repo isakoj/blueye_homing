@@ -1,0 +1,32 @@
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0  # Frequency at which to run the filter (Hz)
+    two_d_mode: false  # Set to true if operating in 2D
+    map_frame: map  # The map frame of the map
+    odom_frame: odom  # The odometry frame
+    base_link_frame: base_link  # The frame of the robot base
+    world_frame: odom  # World frame assumes odom by default
+
+    twist0: blueye/dvl_twist
+    twist0_config: [false, false, false,
+                    false, false, false,
+                    true, true, true,
+                    false, false, false,
+                    false, false, false]
+    twist0_queue_size: 10
+    twist0_differential: false
+    twist0_relative: false
+
+    # IMU fused
+    imu0: blueye/imu_ned
+    imu0_config: [false, false, false,
+                   true, true, true,
+                   false, false, false,
+                   true, true, true,
+                   true, true, false]
+    imu0_queue_size: 10
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
+
+                  
