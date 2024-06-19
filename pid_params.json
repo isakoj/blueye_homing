@@ -1,0 +1,1 @@
+{"homing_surge_kp": 0.6470588235294118, "transit_surge_kp": 1.6756756756756757, "transit_yaw_kd": 2.619047619047619, "transit_sway_kp": 1.7105263157894737, "transit_sway_ki": 1.175, "transit_sway_kd": 1.0789473684210527, "transit_yaw_kp": 0.47619047619047616, "transit_surge_kd": 0.4594594594594595, "homing_yaw_kp": 0.0}

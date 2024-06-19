@@ -48,6 +48,12 @@ def generate_launch_description():
         name='dvl_node'
     )
     
+    blueye_depth = Node(
+        package='blueye_converters',
+        executable='depth_to_ros2',
+        name='depth_node'
+    )
+    
     action_server_executables = [
         "navigate_to_pose_action_server",
         "adjusting_position_action_server",
@@ -75,6 +81,7 @@ def generate_launch_description():
         Blueye_camera,
         Blueye_IMU,
         blueye_dvl,
+        blueye_depth,
         #blueye_usbl,
     ] + action_servers)
 

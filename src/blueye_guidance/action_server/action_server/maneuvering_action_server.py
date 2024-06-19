@@ -130,6 +130,7 @@ class ManeuveringActionServer(Node):
         nu_d = self.desired_velocity(ref, next_waypoint, theta, p - eta_ref[:2])
 
         heading_d = math.atan2(-current_y, -current_x)
+        self.get_logger().info(f'Heading_d: {heading_d}')
         e_psi = normalize_angle(heading_d - psi)
 
         nu_desired = TwistStamped()
@@ -157,6 +158,7 @@ class ManeuveringActionServer(Node):
         error_msg.vector.y = p[1] - eta_ref[1]
         error_msg.vector.z = e_psi
         self._error_pub.publish(error_msg)
+
 
         feedback_msg = Maneuvering.Feedback()
         feedback_msg.distance_remaining = distance_to_target

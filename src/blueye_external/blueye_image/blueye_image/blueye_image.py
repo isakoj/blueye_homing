@@ -62,10 +62,15 @@ class blueye_image(Node):
         self.parameters = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
 
-        #self.camera_matrix = np.array([[962.54, 0, 960], [0, 969.87, 540], [0, 0, 1]])
-        #self.dist_coeffs = np.array([-0.1955, 0.1369, 0.0025, 0.0011, 0.0866])
-        self.camera_matrix = np.array([[345.178130, 0.000000, 959.594649],[0.000000, 345.187259, 539.495259],[0.000000, 0.000000, 1.000000]])
-        self.dist_coeffs = np.array([0.000022, -0.000003, 0.000003, 0.000003, 0.000000])
+        # self.camera_matrix = np.array([[962.54, 0, 960], [0, 969.87, 540], [0, 0, 1]])
+        # self.dist_coeffs = np.array([-0.1955, 0.1369, 0.0025, 0.0011, 0.0866])
+        self.camera_matrix = np.array([[1204.908529, 0, 907.305818], [0, 1215.267102, 483.465210], [0, 0, 1]])
+        self.dist_coeffs = np.array([[-0.153653, 0.043059, 0.000577, 0.001506, 0.000000]])
+
+        
+
+        #self.camera_matrix = np.array([[345.178130, 0.000000, 959.594649],[0.000000, 345.187259, 539.495259],[0.000000, 0.000000, 1.000000]])
+       # self.dist_coeffs = np.array([0.000022, -0.000003, 0.000003, 0.000003, 0.000000])
 
         self.board = cv2.aruco.Board(pos_board, self.dictionary, id_board)
 
@@ -222,7 +227,7 @@ class blueye_image(Node):
                 T_dock_world[:3, 3] = np.array([-1.0, 1.7, 0])
                 T_dock_world[3, 3] = 1
 
-                T_camera_world = T_dock_world @ T_tag_dock @ T_camera_tag @ T_body_camera
+                T_camera_world = T_camera_tag
 
                 R_world_blueye_board = T_camera_world[:3, :3]
                 t_world_blueye_board = T_camera_world[:3, 3]
@@ -262,38 +267,33 @@ class blueye_image(Node):
             self.dist_coeffs)
 
         if len(markerCorners) > 0:
-            prioritized_tags = [1, 16, 17, 18, 19, 20]
+            prioritized_tags = [0, 18, 16, 17]
             detected_tags = markerIds.flatten()
             rvec_init = np.zeros((3, 1), dtype=np.float32)
             tvec_init = np.zeros((3, 1), dtype=np.float32)
 
             tag_pose = {
-                1: np.array([1.4925, 1.919, 1.175]),
-                16: np.array([2.02, 1.87, 1.7]),
-                17: np.array([0.56, 1.88, 1.18]),
+                0: np.array([0.23, 1.87, 2.18]),
+                17: np.array([2.02, 1.87, 1.7]),
+                16: np.array([1.00, 1.87, 2.18]),
                 18: np.array([0.0, 1.87, 1.7]),
-                19: np.array([0.23, 1.87, 2.18]),
-                20: np.array([1.00, 1.87, 2.18])
             }
 
-            tag_rotation = {
-            1: self.rot_matrix_180_y,
-            16: self.rot_matrix_90_y,
-            17: self.rot_matrix_180_y,
-            18: self.rot_matrix_neg90_y,
-            19: self.rot_matrix_identity,
-            20: self.rot_matrix_identity
-            }
+
 
             marker_length = {
-                1: 0.15,
+                0: 0.15,
                 16: 0.222,
                 17: 0.222,
                 18: 0.222,
-                19: 0.222,
-                20: 0.222
             }
-
+            
+            tag_rotation = {
+                0: self.create_rotation_matrix('y', 0),
+                16: self.create_rotation_matrix('y', 0),
+                17: self.create_rotation_matrix('y', 90),
+                18: self.create_rotation_matrix('y', -90),
+            }
 
             for tag in prioritized_tags:
                 if tag in detected_tags:
@@ -302,16 +302,18 @@ class blueye_image(Node):
                     corner = [markerCorners[index]]
                     marker_length_tag = marker_length[tag]
 
-                    rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(
-                        corner, marker_length_tag, self.camera_matrix, self.dist_coeffs, rvec_init, tvec_init)
-                    rvec_single = rvec
-                    tvec_single = tvec
+                    # rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(
+                    #     corner, marker_length_tag, self.camera_matrix, self.dist_coeffs, rvec_init, tvec_init)
+                    
 
                     object_points = np.array([[-marker_length_tag/2, marker_length_tag/2, 0],
                             [marker_length_tag/2, marker_length_tag/2, 0],
                             [marker_length_tag/2, -marker_length_tag/2, 0],
                             [-marker_length_tag/2, -marker_length_tag/2, 0]], dtype=np.float32)
                     image_points = np.array(corner[0], dtype=np.float32)
+                    success, rvec, tvec = cv2.solvePnP(object_points, image_points, self.camera_matrix, self.dist_coeffs)
+                    rvec_single = rvec
+                    tvec_single = tvec
 
                     # Reproject points to calculate the reprojection error
                     reprojected_points, jacobian = cv2.projectPoints(object_points, rvec, tvec, self.camera_matrix, self.dist_coeffs)
@@ -330,8 +332,8 @@ class blueye_image(Node):
 
                     # Construct a 6x6 covariance matrix
                     covariance_6x6 = np.zeros((6, 6))
-                    covariance_6x6[:3, :3] = covariance_translation
-                    covariance_6x6[3:6, 3:6] = covariance_rotation
+                    covariance_6x6[:3, :3] = covariance_rotation
+                    covariance_6x6[3:6, 3:6] = covariance_translation
 
                     covariance = covariance_6x6
 
@@ -339,13 +341,13 @@ class blueye_image(Node):
 
                     T_body_camera = np.zeros((4, 4), dtype=float)
                     T_body_camera[:3, :3] = self.rot_matrix_identity
-                    T_body_camera[:3, 3] = np.array([0.21, 0.0, 0.09])
+                    T_body_camera[:3, 3] = np.array([0.0, -0.09, -0.209])
                     T_body_camera[3, 3] = 1    
 
 
                     T_tag_cam = np.zeros((4, 4), dtype=float)
                     T_tag_cam[:3, :3] = np.matrix(cv2.Rodrigues(rvec_single)[0])
-                    T_tag_cam[:3, 3] = tvec_single
+                    T_tag_cam[:3, 3] = tvec_single.flatten()
                     T_tag_cam[3, 3] = 1
 
                     T_cam_tag = np.linalg.inv(T_tag_cam)
@@ -355,15 +357,21 @@ class blueye_image(Node):
                     T_tag_dock[:3, 3] = tag_pose[tag]
                     T_tag_dock[3, 3] = 1
 
+                    # T_dock_world = np.zeros((4, 4), dtype=float)
+                    # T_dock_world[:3, :3] = self.rot_matrix_90_x
+                    # T_dock_world[:3, 3] = np.array([-1.0, 1.7, 0])
+                    # T_dock_world[3, 3] = 1
+
+                    R_field = self.create_rotation_matrix('z', -30)
+
                     T_dock_world = np.zeros((4, 4), dtype=float)
-                    T_dock_world[:3, :3] = self.rot_matrix_90_x
-                    T_dock_world[:3, 3] = np.array([-1.0, 1.7, 0])
+                    T_dock_world[:3, :3] = R_field @ self.rot_matrix_90_x
+                    # T_dock_world[:3, :3] = self.rot_matrix_90_x @ self.create_rotation_matrix('z', 150)
+                    T_dock_world[:3, 3] = np.array([0.0, 2.0, 0.0])
                     T_dock_world[3, 3] = 1
 
-                    
-
-                    T_cam_world = T_dock_world @ T_tag_dock @ T_cam_tag @ T_body_camera
-                    t_station_blueye_tag = T_cam_world[:3, 3]
+                    T_body_world = T_dock_world @ T_tag_dock @ T_cam_tag @ T_body_camera
+                    t_station_blueye_tag = T_body_world[:3, 3]
 
                     pose_single_marker = np.array([t_station_blueye_tag[0], t_station_blueye_tag[1], t_station_blueye_tag[2]])
 

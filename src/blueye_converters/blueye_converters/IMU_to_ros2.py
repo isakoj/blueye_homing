@@ -18,6 +18,7 @@ class IMUPublisher(Node):
         self.magnetometer_publisher = self.create_publisher(MagneticField, 'magnetometer/data', 10)  # Magnetometer publisher
         self.attitude_publisher = self.create_publisher(Vector3Stamped, '/blueye/attitude', 10)  # Attitude publisher
         self.yaw_quat_publisher = self.create_publisher(Imu, '/blueye/quaternion/imu', 10)
+        self.imu_to_enu = self.create_publisher(Imu, '/blueye/imu_enu', 10)
         self.br = TransformBroadcaster(self)  # TF2 Transform Broadcaster
         self.initialize_drone()
 
@@ -34,7 +35,7 @@ class IMUPublisher(Node):
         imu_msg.header.frame_id = 'base_link'
         imu_msg.angular_velocity.x = msg.imu.gyroscope.x
         imu_msg.angular_velocity.y = msg.imu.gyroscope.y
-        imu_msg.angular_velocity.z = msg.imu.gyroscope.z
+        imu_msg.angular_velocity.z = -msg.imu.gyroscope.z
         imu_msg.linear_acceleration.x = msg.imu.accelerometer.x
         imu_msg.linear_acceleration.y = msg.imu.accelerometer.y
         imu_msg.linear_acceleration.z = msg.imu.accelerometer.z
@@ -112,6 +113,16 @@ class IMUPublisher(Node):
         t.transform.rotation.w = 1.0
         self.br.sendTransform(t)
         
+        heading_msg_enu = Imu()
+        heading_msg_enu.header.stamp = self.get_clock().now().to_msg()
+        heading_msg_enu.header.frame_id = 'base_link'
+        heading_msg_enu.orientation.w = w
+        heading_msg_enu.orientation.x = y
+        heading_msg_enu.orientation.y = x
+        heading_msg_enu.orientation.z = -z
+        self.imu_to_enu.publish(heading_msg_enu)
+        
+
 
 def main(args=None):
     rclpy.init(args=args)

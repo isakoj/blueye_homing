@@ -26,8 +26,8 @@ class DVLPublisher(Node):
         twist_msg.header.stamp = self.get_clock().now().to_msg()
         twist_msg.header.frame_id = 'base_link'
         twist_msg.twist.twist.linear.x = msg.position_estimate.surge_rate
-        twist_msg.twist.twist.linear.y = msg.position_estimate.sway_rate
-        twist_msg.twist.twist.angular.z = msg.position_estimate.yaw_rate
+        twist_msg.twist.twist.linear.y = -msg.position_estimate.sway_rate
+        twist_msg.twist.twist.angular.z = -msg.position_estimate.yaw_rate
         
         twist_msg.twist.covariance = [0.0] * 36
         

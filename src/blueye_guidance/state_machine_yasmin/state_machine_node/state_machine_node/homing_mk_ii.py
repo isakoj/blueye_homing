@@ -56,7 +56,8 @@ def create_waypoint(blackboard: Blackboard) -> str:
     waypoints = []
 
     for i in range(num_waypoints):
-        angle = 2 * math.pi * i / num_waypoints
+        # Apply 30-degree offset
+        angle = 2 * math.pi * i / num_waypoints - math.radians(30)
         waypoint = PoseStamped()
         waypoint.header.frame_id = "odom"
         waypoint.pose.position.x = radius * math.cos(angle)
@@ -100,7 +101,7 @@ class GetPath(MonitorState):
             print("No waypoints found.")
             return ABORT
 
-        final_waypoint_index = 2
+        final_waypoint_index = 6
 
         current_position = msg.pose.pose.position
         current_x = current_position.x
@@ -176,7 +177,7 @@ class GetPath(MonitorState):
 
         log_transition(self.node, blackboard, "GetPath")
         
-        if self.distance > 5.0:
+        if self.distance > 0.0:
             
             return SUCCEED
         else:
@@ -184,7 +185,7 @@ class GetPath(MonitorState):
 
     def order_path(self, path, start_index, end_index, waypoints):
         if start_index <= end_index:
-            return path
+            return path[::-1]
         else:
             return path[::-1]  # Reverse the path to ensure it starts at the closest and ends at the final waypoint
 
@@ -215,7 +216,7 @@ class StartScanning(State):
 
         self.node = node
 
-        self.usbl_client = node.create_client(SetBool, "/sensor/set_usbl")
+        # self.usbl_client = node.create_client(SetBool, "/sensor/set_usbl")
         self.marker_detection_client = node.create_client(SetBool, "/sensor/set_marker_detection")
         self._stop_pub = node.create_publisher(Empty, "/blueye/stop", 10)
 
@@ -229,7 +230,7 @@ class StartScanning(State):
             time.sleep(0.1)  # Short delay between messages
 
         self.set_service(self.marker_detection_client, True)
-        self.set_service(self.usbl_client, False)
+        # self.set_service(self.usbl_client, False)
         
         time.sleep(10)
         return SUCCEED
@@ -395,7 +396,7 @@ class InitializeDockingState(ActionState):
 
         log_transition(self.node, blackboard, "InitializeDocking")
 
-        self._dock_init_pub.publish(Bool(data=True))
+        self._dock_init_pub.publish(Bool(data=False))
         goal = InitializeDocking.Goal()
         goal.aruco_pose = blackboard.aruco_pose
         

@@ -27,6 +27,7 @@ setup(
             'BluEye_Pose = blueye_converters.BluEye_Pose:main',
             'BluEye_Force = blueye_converters.BluEye_Force:main',
             'dvl_to_ros2 = blueye_converters.dvl_to_ros2:main',
+            'depth_to_ros2 = blueye_converters.depth_to_ros2:main',
             
         ],
     },

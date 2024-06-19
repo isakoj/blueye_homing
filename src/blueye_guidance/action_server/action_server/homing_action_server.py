@@ -92,6 +92,7 @@ class HomingActionServer(Node):
 
             heading_d = course_d - math.asin(self.current_velocity.linear.y / math.sqrt(self.current_velocity.linear.x**2 + self.current_velocity.linear.y**2))
             heading_d = normalize_angle(heading_d)
+            self.get_logger().info(f'Heading_d: {heading_d}')
 
             e_psi = normalize_angle(heading_d - psi)
 
@@ -121,7 +122,7 @@ class HomingActionServer(Node):
             feedback_msg.distance_remaining = distance
             goal_handle.publish_feedback(feedback_msg)
             
-            if distance < 3.0:
+            if distance < 5.0:
                 self.get_logger().info('Reached homing target')
                 goal_handle.succeed()
                 result = Homing.Result()
