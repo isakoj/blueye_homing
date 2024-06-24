@@ -37,13 +37,13 @@ class PIDTuningGUI:
         self.create_slider(self.homing_frame, "Homing Yaw Kd", self.params.get("homing_yaw_kd", 2.5), 0.0, 5.0, self.update_homing_yaw_kd)
 
         # Create sliders for transit parameters
-        self.create_slider(self.transit_frame, "Transit Surge Kp", self.params.get("transit_surge_kp", 0.6), 0.0, 2.0, self.update_transit_surge_kp)
-        self.create_slider(self.transit_frame, "Transit Surge Ki", self.params.get("transit_surge_ki", 0.0), 0.0, 2.0, self.update_transit_surge_ki)
-        self.create_slider(self.transit_frame, "Transit Surge Kd", self.params.get("transit_surge_kd", 0.2), 0.0, 2.0, self.update_transit_surge_kd)
+        self.create_slider(self.transit_frame, "Transit Surge Kp", self.params.get("transit_surge_kp", 0.6), 0.0, 100.0, self.update_transit_surge_kp)
+        self.create_slider(self.transit_frame, "Transit Surge Ki", self.params.get("transit_surge_ki", 0.0), 0.0, 100.0, self.update_transit_surge_ki)
+        self.create_slider(self.transit_frame, "Transit Surge Kd", self.params.get("transit_surge_kd", 0.2), 0.0, 100.0, self.update_transit_surge_kd)
 
-        self.create_slider(self.transit_frame, "Transit Sway Kp", self.params.get("transit_sway_kp", 0.16), 0.0, 2.0, self.update_transit_sway_kp)
-        self.create_slider(self.transit_frame, "Transit Sway Ki", self.params.get("transit_sway_ki", 0.0), 0.0, 2.0, self.update_transit_sway_ki)
-        self.create_slider(self.transit_frame, "Transit Sway Kd", self.params.get("transit_sway_kd", 0.002), 0.0, 2.0, self.update_transit_sway_kd)
+        self.create_slider(self.transit_frame, "Transit Sway Kp", self.params.get("transit_sway_kp", 0.16), 0.0, 100.0, self.update_transit_sway_kp)
+        self.create_slider(self.transit_frame, "Transit Sway Ki", self.params.get("transit_sway_ki", 0.0), 0.0, 100.0, self.update_transit_sway_ki)
+        self.create_slider(self.transit_frame, "Transit Sway Kd", self.params.get("transit_sway_kd", 0.002), 0.0, 100.0, self.update_transit_sway_kd)
 
         self.create_slider(self.transit_frame, "Transit Yaw Kp", self.params.get("transit_yaw_kp", 0.75), 0.0, 2.0, self.update_transit_yaw_kp)
         self.create_slider(self.transit_frame, "Transit Yaw Ki", self.params.get("transit_yaw_ki", 0.01), 0.0, 2.0, self.update_transit_yaw_ki)

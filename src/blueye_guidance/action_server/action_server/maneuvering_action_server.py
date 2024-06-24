@@ -37,7 +37,7 @@ class ManeuveringActionServer(Node):
         self.delta = 2.0
         self.nu_d = np.zeros(3)
 
-        self.timer_period = 0.01  # 100 Hz update rate
+        self.timer_period = 1/30  # 30 Hz update rate, same as filter rate
         self.timer = self.create_timer(self.timer_period, self.timer_callback)
         self.waypoints = []
         self.target_point = None
@@ -130,7 +130,7 @@ class ManeuveringActionServer(Node):
         nu_d = self.desired_velocity(ref, next_waypoint, theta, p - eta_ref[:2])
 
         heading_d = math.atan2(-current_y, -current_x)
-        self.get_logger().info(f'Heading_d: {heading_d}')
+
         e_psi = normalize_angle(heading_d - psi)
 
         nu_desired = TwistStamped()

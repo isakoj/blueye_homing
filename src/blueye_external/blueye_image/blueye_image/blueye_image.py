@@ -272,14 +272,14 @@ class blueye_image(Node):
             rvec_init = np.zeros((3, 1), dtype=np.float32)
             tvec_init = np.zeros((3, 1), dtype=np.float32)
 
+            dock_centre = np.array([1.0, 1.87, 1.7])
+            
             tag_pose = {
-                0: np.array([0.23, 1.87, 2.18]),
-                17: np.array([2.02, 1.87, 1.7]),
-                16: np.array([1.00, 1.87, 2.18]),
-                18: np.array([0.0, 1.87, 1.7]),
+                0: np.array([0.23, 1.87, 2.18]) - dock_centre,
+                17: np.array([2.02, 1.87, 1.7]) - dock_centre,
+                16: np.array([1.00, 1.87, 2.18]) - dock_centre,
+                18: np.array([0.0, 1.87, 1.7]) - dock_centre,
             }
-
-
 
             marker_length = {
                 0: 0.15,
@@ -335,7 +335,8 @@ class blueye_image(Node):
                     covariance_6x6[:3, :3] = covariance_rotation
                     covariance_6x6[3:6, 3:6] = covariance_translation
 
-                    covariance = covariance_6x6
+                    # covariance = covariance_6x6
+                    covariance = np.eye(6) * mean_error
 
 
 
@@ -367,7 +368,7 @@ class blueye_image(Node):
                     T_dock_world = np.zeros((4, 4), dtype=float)
                     T_dock_world[:3, :3] = R_field @ self.rot_matrix_90_x
                     # T_dock_world[:3, :3] = self.rot_matrix_90_x @ self.create_rotation_matrix('z', 150)
-                    T_dock_world[:3, 3] = np.array([0.0, 2.0, 0.0])
+                    T_dock_world[:3, 3] = np.array([0.0, 0.0, 0.0])
                     T_dock_world[3, 3] = 1
 
                     T_body_world = T_dock_world @ T_tag_dock @ T_cam_tag @ T_body_camera

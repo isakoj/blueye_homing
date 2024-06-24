@@ -13,7 +13,7 @@ ekf_filter_node:
                    false, false, false,
                    false, false, false,
                    true, true, true,
-                   true, true, false]
+                   true, true, true]
     imu0_queue_size: 20
     imu0_differential: false
     imu0_relative: false
@@ -25,7 +25,7 @@ ekf_filter_node:
                    false, false, false,
                    false, false, false,
                    false, false, false]
-    imu1_queue_size: 15
+    imu1_queue_size: 20
     imu1_differential: false
     imu1_relative: false
 
@@ -48,7 +48,7 @@ ekf_filter_node:
                    false, false, false,
                    false, false, false,
                    false, false, false]
-    pose1_queue_size: 5
+    pose1_queue_size: 4
     pose1_differential: false
     pose1_relative: false
 
@@ -58,7 +58,7 @@ ekf_filter_node:
                    false, false, false,
                    false, false, false,
                    false, false, false]
-    pose2_queue_size: 5
+    pose2_queue_size: 4
     pose2_differential: false
     pose2_relative: false
 
@@ -68,7 +68,7 @@ ekf_filter_node:
                     true, true, false,
                     false, false, false,
                     false, false, false]
-    twist0_queue_size: 10
+    twist0_queue_size: 20
     twist0_differential: false
     twist0_relative: false
 
@@ -88,11 +88,11 @@ ekf_filter_node:
                                0.0,    0.0,    0.0,    0.1,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.1,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.1,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.01,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.01,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.1,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.1,     0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.1,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.1,    0.0,    0.0,    0.0,    0.0,    0.0,
-                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.01, 0.0,    0.0,    0.0,    0.0,
+                               0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.01,   0.0,    0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.02, 0.0,    0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,     0.0,     0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,

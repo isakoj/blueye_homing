@@ -326,7 +326,6 @@ class ObjectDetected(State):
 
         if marker_id == 1:
             blackboard.heading = "dock"
-            self.dock_init_pub.publish(Bool(data=True))
 
             return END
         elif marker_id in [16, 17, 18, 19, 20]:
@@ -390,13 +389,12 @@ class InitializeDockingState(ActionState):
             None  # cb to process the response
         )
         self.node = node
-        self._dock_init_pub = node.create_publisher(Bool, "/blueye/docking_init", 10)
+    
     def create_goal_handler(self, blackboard: Blackboard) -> InitializeDocking.Goal:
         print("Initializing docking")
 
         log_transition(self.node, blackboard, "InitializeDocking")
 
-        self._dock_init_pub.publish(Bool(data=False))
         goal = InitializeDocking.Goal()
         goal.aruco_pose = blackboard.aruco_pose
         

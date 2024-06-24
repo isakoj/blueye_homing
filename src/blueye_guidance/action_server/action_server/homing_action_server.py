@@ -68,7 +68,7 @@ class HomingActionServer(Node):
             target_point_y = target_point.pose.position.y
             target_point_z = target_point.pose.position.z
 
-            distance = math.sqrt((target_point_x - current_x)**2 + (target_point_y - current_y)**2 + (target_point_z - current_z)**2)
+            distance = math.sqrt((- current_x)**2 + (- current_y)**2 )
 
             dx = target_point_x - ref_x
             dy = target_point_y - ref_y
@@ -90,9 +90,8 @@ class HomingActionServer(Node):
 
             nu_d = np.array([self.U * math.cos(course_d), self.U * math.sin(course_d)])
 
-            heading_d = course_d - math.asin(self.current_velocity.linear.y / math.sqrt(self.current_velocity.linear.x**2 + self.current_velocity.linear.y**2))
+            heading_d = course_d - 0.01 * math.asin(self.current_velocity.linear.y / math.sqrt(self.current_velocity.linear.x**2 + self.current_velocity.linear.y**2))
             heading_d = normalize_angle(heading_d)
-            self.get_logger().info(f'Heading_d: {heading_d}')
 
             e_psi = normalize_angle(heading_d - psi)
 
@@ -120,9 +119,11 @@ class HomingActionServer(Node):
             self._twist_pub.publish(twist_d)
   
             feedback_msg.distance_remaining = distance
+            self.get_logger().info(f'Distance left: {distance}')
+            
             goal_handle.publish_feedback(feedback_msg)
             
-            if distance < 5.0:
+            if distance < 10.0:
                 self.get_logger().info('Reached homing target')
                 goal_handle.succeed()
                 result = Homing.Result()

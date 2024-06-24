@@ -32,21 +32,27 @@ class Controller(Node):
         self.homing_sway_pid = PIDController(kp=0.2, ki=0.0, kd=0.01)
         self.homing_yaw_pid = PIDController(kp=1.0, ki=0.01, kd=2.5)
         
+        self.heave_pid = PIDController(kp=0.2, ki=0.0, kd=0.05)
+        
         self.controller_active = False
         self.yaw_control = False
         self.direction = None
         self.homing_control = False
 
         qos = QoSProfile(depth=10)
+        
+        self.drone.motion.auto_depth_active = True
+        self.drone.motion.auto_heading_active = True
 
         self.eta = np.zeros(3)
-        self.nu = np.zeros(3)
+        self.nu = np.zeros(4)
         self.bias = np.zeros(3)
         self.reference = np.zeros(3)
         self.nu_d = np.zeros(3)
         self.error = np.zeros(3)
         self.error_dock = np.zeros(3)
         self.height = 0.0
+        self.heave_d = -7.4
 
         self.dt = 0.01
         self.radius_d = 3.0
@@ -54,14 +60,14 @@ class Controller(Node):
         self.angle_d = np.pi/2
 
         # Subscribers and publishers
-        self.obs_sub = self.create_subscription(Odometry, '/odometry/filtered', self.observer_callback, 10)
-        self.reference_sub = self.create_subscription(PoseStamped, '/FSM/reference', self.reference_callback, 10)
-        self.homing_sub = self.create_subscription(PoseStamped, '/FSM/homing_reference', self.homing_reference_callback, 10)
-        self.radius_sub = self.create_subscription(Float32, '/FSM/radius', self.radius_callback, 10)
-        self._error_sub = self.create_subscription(Vector3Stamped, '/FSM/errors', self.error_callback, 10)
-        self._twist_sub = self.create_subscription(TwistStamped, '/FSM/twist', self.twist_callback, 10)
+        self.obs_sub = self.create_subscription(Odometry, '/odometry/filtered', self.observer_callback, 1)
+        self.reference_sub = self.create_subscription(PoseStamped, '/FSM/reference', self.reference_callback, 1)
+        self.homing_sub = self.create_subscription(PoseStamped, '/FSM/homing_reference', self.homing_reference_callback, 1)
+        self.radius_sub = self.create_subscription(Float32, '/FSM/radius', self.radius_callback, 1)
+        self._error_sub = self.create_subscription(Vector3Stamped, '/FSM/errors', self.error_callback, 1)
+        self._twist_sub = self.create_subscription(TwistStamped, '/FSM/twist', self.twist_callback, 1)
         self._error_plot_pub = self.create_publisher(Vector3Stamped, '/FSM/error_depth_plot', qos)
-        
+        self._force_publisher = self.create_publisher(Vector3Stamped, '/blueye/force', qos)
         
         self._transition_sub = self.create_subscription(Header, '/FSM/transitions', self.transition_callback, 10)
         self.transition_pub = self.create_publisher(Header, '/FSM/transitions_sim', qos)
@@ -98,6 +104,7 @@ class Controller(Node):
         if self.reference is None:
             self.drone.motion.surge = 0.0
             self.drone.motion.sway = 0.0
+            self.drone.motion.heave = 0.0
             self.drone.motion.yaw = 0.0
             
             
@@ -113,9 +120,18 @@ class Controller(Node):
 
             error = self.error
             error[2] = normalize_angle(error[2])
+            
             error_dot_n = self.nu_d - self.nu[:3]
             error_dot_b = R.T @ error_dot_n
             error_dot = error_dot_b
+            
+            self.drone.motion.auto_heading_active = True
+            
+            error_heave = self.heave_d - self.height
+            heave_vel_cmd = self.heave_pid.update(error_heave, self.nu[3], self.dt)
+            
+            if abs(error_heave) < 0.5:
+                self.drone.motion.auto_depth_active = True
             
             if self.homing_control:
                 surge_pid = self.homing_surge_pid
@@ -153,20 +169,39 @@ class Controller(Node):
 
                 max_force = 1.0  # Adjusted limit for force
                 max_torque = 0.1
-
+                
+            
 
             # Apply limits to surge and sway force outputs
             surge_vel_cmd = max(-max_force, min(surge_vel_cmd, max_force))
             sway_vel_cmd = max(-max_force, min(sway_vel_cmd, max_force))
+            # heave_vel_cmd = max(-max_force, min(error[2], max_force))
             yaw_vel_cmd = max(-max_torque, min(yaw_vel_cmd, max_torque))
 
-            transition_scale = self.smooth_transition(error_b[2], yaw_error_threshold, 10.0)
+            transition_scale = self.smooth_transition(error_b[2], yaw_error_threshold, delta)
+            #transition_scale = self.smooth_transition(error_heave, heave_error_threshold, delta)
             surge_vel_cmd *= transition_scale
             sway_vel_cmd *= transition_scale
 
             self.drone.motion.surge = surge_vel_cmd
-            self.drone.motion.sway = sway_vel_cmd
-            self.drone.motion.yaw = yaw_vel_cmd
+            self.drone.motion.sway = -sway_vel_cmd
+            # self.drone.motion.heave = heave_vel_cmd
+            self.drone.motion.yaw = -yaw_vel_cmd
+            
+            vel_cmd = Vector3Stamped()
+            vel_cmd.header.stamp = self.get_clock().now().to_msg()
+            vel_cmd.vector.x = surge_vel_cmd
+            vel_cmd.vector.y = -sway_vel_cmd
+            vel_cmd.vector.z = -yaw_vel_cmd
+            self._force_publisher.publish(vel_cmd)
+            
+            error_depth_plot = Vector3Stamped()
+            error_depth_plot.header.stamp = self.get_clock().now().to_msg()
+            error_depth_plot.vector.x = 0.0
+            error_depth_plot.vector.y = 0.0
+            error_depth_plot.vector.z = error_heave
+            self._error_plot_pub.publish(error_depth_plot)
+
             
     def observer_callback(self, msg):
         position = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
@@ -211,7 +246,6 @@ class Controller(Node):
 
     def error_callback(self, msg):
         self.error = np.array([msg.vector.x, msg.vector.y, msg.vector.z])
-
 
     def transition_callback(self, msg):
         state = msg.frame_id

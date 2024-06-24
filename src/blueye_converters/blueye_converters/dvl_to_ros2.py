@@ -5,13 +5,14 @@ from geometry_msgs.msg import Vector3Stamped, TwistWithCovarianceStamped
 from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 import time
+import numpy as np
 import blueye.protocol as bp
 from blueye.sdk import Drone
 
 class DVLPublisher(Node):
     def __init__(self):
         super().__init__('dvl_publisher')
-        self.dvl_publisher = self.create_publisher(TwistWithCovarianceStamped, '/blueye/dvl_twist', 100)
+        self.dvl_publisher = self.create_publisher(TwistWithCovarianceStamped, '/blueye/dvl_twist', 10)
         self.br = TransformBroadcaster(self)  # TF2 Transform Broadcaster
         self.initialize_drone()
 
@@ -29,7 +30,17 @@ class DVLPublisher(Node):
         twist_msg.twist.twist.linear.y = -msg.position_estimate.sway_rate
         twist_msg.twist.twist.angular.z = -msg.position_estimate.yaw_rate
         
-        twist_msg.twist.covariance = [0.0] * 36
+        linear_std_dev = 0.101
+        angular_std_dev = 0.01  # Adjust as needed
+
+        twist_covariance = np.zeros((6, 6))
+        twist_covariance[0, 0] = linear_std_dev ** 2
+        twist_covariance[1, 1] = linear_std_dev ** 2
+        twist_covariance[2, 2] = linear_std_dev ** 2
+        twist_covariance[3, 3] = angular_std_dev ** 2
+        twist_covariance[4, 4] = angular_std_dev ** 2
+        twist_covariance[5, 5] = angular_std_dev ** 2
+        twist_msg.twist.covariance = twist_covariance.flatten().tolist()
         
         self.dvl_publisher.publish(twist_msg)  
         

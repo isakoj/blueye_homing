@@ -14,7 +14,7 @@ import numpy as np
 class IMUPublisher(Node):
     def __init__(self):
         super().__init__('imu_publisher')
-        self.imu_publisher = self.create_publisher(Imu, '/blueye/imu', 1)
+        self.imu_publisher = self.create_publisher(Imu, '/blueye/imu', 10)
         self.magnetometer_publisher = self.create_publisher(MagneticField, 'magnetometer/data', 10)  # Magnetometer publisher
         self.attitude_publisher = self.create_publisher(Vector3Stamped, '/blueye/attitude', 10)  # Attitude publisher
         self.yaw_quat_publisher = self.create_publisher(Imu, '/blueye/quaternion/imu', 10)
