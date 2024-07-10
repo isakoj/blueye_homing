@@ -57,7 +57,7 @@ class InitializeDockingActionServer(Node):
             error_y = desired_pose.position.y - self.current_pose.position.y
             aruco_position = self.aruco_pose.position
 
-            desired_heading = -np.pi/2
+            desired_heading = np.pi/3
             e_psi = normalize_angle(desired_heading - psi)
 
             error = Vector3Stamped()

@@ -178,7 +178,7 @@ class Controller(Node):
             # heave_vel_cmd = max(-max_force, min(error[2], max_force))
             yaw_vel_cmd = max(-max_torque, min(yaw_vel_cmd, max_torque))
 
-            transition_scale = self.smooth_transition(error_b[2], yaw_error_threshold, delta)
+            transition_scale = self.smooth_transition(error[2], yaw_error_threshold, delta)
             #transition_scale = self.smooth_transition(error_heave, heave_error_threshold, delta)
             surge_vel_cmd *= transition_scale
             sway_vel_cmd *= transition_scale

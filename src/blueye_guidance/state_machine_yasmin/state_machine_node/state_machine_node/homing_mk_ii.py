@@ -51,7 +51,7 @@ def create_waypoint(blackboard: Blackboard) -> str:
         "docking_station": docking_station
     }
 
-    radius = 3.0
+    radius = 2.0
     num_waypoints = 8
     waypoints = []
 
@@ -164,8 +164,8 @@ class GetPath(MonitorState):
         self._guidance_ref.publish(ref)
 
         aruco_pose = Pose()
-        aruco_pose.position.x = 0.5
-        aruco_pose.position.y = 2.0
+        aruco_pose.position.x = -2.0
+        aruco_pose.position.y = -1.5
         aruco_pose.position.z = 0.0
 
         blackboard.aruco_pose = aruco_pose
